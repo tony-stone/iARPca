@@ -1,1 +1,5 @@
 exportPattern("^[[:alpha:]]+")
+import(data.table)
+import(DataExplorer)
+importFrom(yaml, read_yaml)
+importFrom(openxlsx, getSheetNames, read.xlsx)
