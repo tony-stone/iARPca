@@ -96,4 +96,4 @@ ohcao_data <- data.table::copy(ohcao_data_raw[, .(ohcaoid, site, ems_month, emst
 
 # Save data ---------------------------------------------------------------
 
-usethis::use_data(coding_tables, internal = TRUE, overwrite = TRUE)
+usethis::use_data(ohcao_data, internal = TRUE, overwrite = TRUE)
