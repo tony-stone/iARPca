@@ -2,8 +2,11 @@ Package: iARPca
 Type: Package
 Title: Data management, processing and analysis for the iARPca study
 Version: 0.1.0
-Authors@R: person("Tony", "Stone", email = "tony.stone@sheffield.ac.uk",
-                  role = c("aut", "cre"))
+Authors@R: person(given = "Tony", 
+           family = "Stone", 
+           email = "tony.stone@sheffield.ac.uk",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0167-3800"))
 Description: The iARPca study seeks to estimating the impact of the 
     implementation of the Ambulance Response Programme on outcomes 
     for individuals who experience a cardiac arrest and are attended 
