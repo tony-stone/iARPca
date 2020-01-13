@@ -4,3 +4,5 @@
 .Ruserdata
 private.yaml
 /data/*
+/r/*
+!/r/*.r
