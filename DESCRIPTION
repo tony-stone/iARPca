@@ -10,14 +10,15 @@ Authors@R: person(given = "Tony",
 Description: The iARPca study seeks to estimating the impact of the 
     implementation of the Ambulance Response Programme on outcomes 
     for individuals who experience a cardiac arrest and are attended 
-    by the ambulance service. This repository 
-License: GPLv3
+    by the ambulance service. This package contains all processing
+    and analysis code used for that study.
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
+Depends: R (>= 3.6.0)
 Imports:
     data.table,
     DataExplorer,
-    lubridate,
-    openxlsx,
-    yaml
+    ggplot2,
+    lubridate
 RoxygenNote: 7.0.2

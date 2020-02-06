@@ -1,22 +1,30 @@
 #' Prepare OHCAO data for analysis
-#'
 #' @param ohcao_data_raw A data.table of raw OHCAO data.
-#'
 #' @return A data.table of prepared OHCAO data.
-#'
 #' @examples
+#' \dontrun{
 #' prepareOHCAOData(ohcao_data_raw)
+#' }
+#' @import data.table
+#' @export
 prepareOHCAOData <- function(ohcao_data_raw) {
+
+  . = N = age = cprlay = data_coding_type = discharged = ems_month = NULL
+  emsdate = emstime = field = hospcode = hospcode_original = NULL
+  imd2015decile = initrhythm = ohcaoid = padused = responsetime = NULL
+  role = roschosp = roscpreems = sex = site = wit = NULL
 
   # Attach coding labels to data --------------------------------------------
 
-  recodes <- coding_tables[["data_coding"]][substr(data_coding_type, 1, 2) == "tb" & field %in% colnames(ohcao_data_raw)]
+  recodes <- ref_coding_tables[["data_coding"]][substr(data_coding_type, 1, 2) == "tb" & field %in% colnames(ohcao_data_raw)]
   recode_field_names <- recodes$field
+  recode_boolean_field_names <- recodes$field[recodes$data_coding_type == "tbCodeBool"]
+
 
   for(var in recode_field_names) {
-    data.table::setnames(coding_tables[[recodes[field == var, data_coding_type]]], paste0(var, c("", "_original")))
+    data.table::setnames(ref_coding_tables[[recodes[field == var, data_coding_type]]], paste0(var, c("", "_original")))
     ohcao_data_raw <- merge(ohcao_data_raw,
-                            coding_tables[[recodes[field == var, data_coding_type]]],
+                            ref_coding_tables[[recodes[field == var, data_coding_type]]],
                             by = var,
                             all.x = TRUE)
   }
@@ -32,6 +40,12 @@ prepareOHCAOData <- function(ohcao_data_raw) {
     replace(vec, vec %in% c("Not recorded", "Not applicable", "Unobtainable", "Unknown"), NA)
   }), .SDcols = recode_field_names]
 
+
+  # Convert boolean values to R native boolean type -------------------------
+
+  ohcao_data_raw[, (recode_boolean_field_names) := lapply(.SD, function(vec) {
+    return(vec == "Yes")
+  }), .SDcols = recode_boolean_field_names]
 
 
   # standardise field names (& remove prefixes) -----------------------------
@@ -66,11 +80,100 @@ prepareOHCAOData <- function(ohcao_data_raw) {
   }), .SDcols = time_fields]
 
 
-
   # standardise data types --------------------------------------------------
 
   ohcao_data_raw[, ems_month := as.Date(lubridate::fast_strptime(paste(emsdate, "12:00:00"), format = "%Y%B %H:%M:%S", tz = "Europe/London", lt = FALSE))]
 
+
+  # Create age_group fields -------------------------------------------------
+
+  ohcao_data_raw[, ':=' (age_group = cut(age,
+                                         ref_age_cut_points,
+                                         right = FALSE),
+                         age_group_broad = cut(age,
+                                               c(ref_age_cut_points[seq(from = 1, to = length(ref_age_cut_points) - 1 , by = 2)], Inf),
+                                               right = FALSE))]
+
+  ohcao_data_raw[, age_group := levels(age_group)[age_group]]
+
+
+
+# recode sex as lower case ------------------------------------------------
+
+  ohcao_data_raw[, sex := tolower(sex)]
+
+
+# Identify ARP phase ------------------------------------------------------
+
+
+  ohcao_data_raw <- merge(ohcao_data_raw, ref_implementation_dates, by = "site", all.x = TRUE)
+
+  ohcao_data_raw[, ':=' (additional_triage_time = lubridate::floor_date(additional_triage_time, unit = "month"),
+                         revised_call_categories = lubridate::floor_date(revised_call_categories, unit = "month") + months(1))]
+
+  ohcao_data_raw[ems_month < additional_triage_time, ARP_phase := "pre-ARP"]
+  ohcao_data_raw[ems_month >= revised_call_categories, ARP_phase := "post-ARP"]
+  ohcao_data_raw[, ARP_phase := factor(ARP_phase, c("pre-ARP", "post-ARP"))]
+
+
+# Recode ROLE as per OHCAO guidance ---------------------------------------
+
+  ohcao_data_raw[(roschosp == TRUE | discharged == TRUE) & role == TRUE, role := FALSE]
+
+# Recode respontime/crplay as per OHCAO guidance --------------------------
+
+  ohcao_data_raw[wit == "EMS witnessed" , ':=' (responsetime = 0,
+                                                cprlay = "No bystander CPR")]
+
+
+  # Create binary version of cprlay -----------------------------------------
+
+  ohcao_data_raw[!is.na(cprlay), cprlay_binary := cprlay %in% c("Bystander CPR",
+                                                                "Subset: compression only",
+                                                                "Subset: compression and ventilations")]
+
+
+  # Create binary version of initrhythm -------------------------------------
+
+  ohcao_data_raw[!is.na(initrhythm), initrhythm_shockable_binary :=  (initrhythm %in% c("VF/VT",
+                                                                                        "AED shockable",
+                                                                                        "VF",
+                                                                                        "Pulseless VT"))]
+
+
+# Create binary version of padused ----------------------------------------
+
+  ohcao_data_raw[!is.na(padused), padused_binary := (padused %in% c("Yes",
+                                                                    "AED used, no shock delivered",
+                                                                    "AED used, shock delivered"))]
+
+
+# Create binary version of witnessed --------------------------------------
+
+  ohcao_data_raw[!is.na(wit), wit_binary :=  (wit %in% c("Bystander witnessed",
+                                                         "EMS witnessed",
+                                                         "Yes"))]
+
+
+# Create bi-monthly "season" variable -------------------------------------
+
+  ohcao_data_raw[!is.na(ems_month), bimonth := paste(month.abb[as.integer(ceiling(as.numeric(format(ems_month, format = "%m")) / 2)) * 2 - 1],
+                                                   month.abb[as.integer(ceiling(as.numeric(format(ems_month, format = "%m")) / 2)) * 2], sep = "-")]
+  ohcao_data_raw[, bimonth := factor(bimonth, paste(month.abb[1:6 * 2 - 1], month.abb[1:6 * 2], sep = "-"))]
+
+  # Identify complete cases -------------------------------------------------
+
+  ohcao_data_raw[, complete_case := complete.cases(site, ARP_phase, bimonth,
+                                                   responsetime, age,
+                                                   wit_binary, cprlay_binary,
+                                                   initrhythm_shockable_binary,
+                                                   discharged, roschosp)]
+
+  ohcao_data_raw[, complete_case_roschosp := complete.cases(site, ARP_phase, bimonth,
+                                                   responsetime, age,
+                                                   wit_binary, cprlay_binary,
+                                                   initrhythm_shockable_binary,
+                                                   roschosp)]
 
   # Ensure OHCAO IDs are unique ---------------------------------------------
 
@@ -79,10 +182,21 @@ prepareOHCAOData <- function(ohcao_data_raw) {
 
   # Define analysis dataset -------------------------------------------------
 
-  ohcao_data <- data.table::copy(ohcao_data_raw[, .(ohcaoid, site, ems_month, emstime, responsetime,
-                                                    sex, age, imd2015decile, wit, cprlay, padused,
-                                                    initrhythm, roscpreems, role, hospcode, discharged,
-                                                    roschosp)])
+  ohcao_data <- data.table::copy(ohcao_data_raw[, .(ohcaoid,
+                                                    site, ARP_phase, bimonth,
+                                                    responsetime, age,
+                                                    wit_binary, cprlay_binary,
+                                                    initrhythm_shockable_binary,
+                                                    discharged, roschosp,
+                                                    complete_case,
+                                                    complete_case_roschosp,
+                                                    age_group, age_group_broad,
+                                                    ems_month, emstime,
+                                                    sex, imd2015decile,
+                                                    wit, cprlay, initrhythm,
+                                                    padused, padused_binary,
+                                                    roscpreems, role,
+                                                    hospcode)])
 
 
   # Return data -------------------------------------------------------------

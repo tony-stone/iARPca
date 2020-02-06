@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+data/*
+data-raw/*/*
 private.yaml
-/data/*
-/r/*
-!/r/*.r
+/markdown/*

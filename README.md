@@ -49,7 +49,7 @@ North East        | A     | 2015-10-08                                 | 2017-11
 North West        |       | 2016-10-04                                 | 2017-08-07                                  | 35
 South Central     | A     | 2015-10-19                                 | 2017-11-06                                  | 50
 South East Coast  |       | 2016-10-18                                 | 2017-10-20                                  | 38
-South West        | A,C,D | 2015-02-01                                 | 2016-04-18                                  | 39
+South Western     | A,C,D | 2015-02-01                                 | 2016-04-18                                  | 39
 West Midlands     | A,D   | 2015-10-19                                 | 2016-06-13                                  | 33
 Yorkshire         | A,D   | 2015-10-19                                 | 2016-04-18                                  | 31
 
@@ -59,9 +59,9 @@ A. Additional triage time pilot programme service. Six services used the same ad
 
 B. London began some pilot work using variable additional triage time in February 2015. London were not consistent in their use of additional triage time until the beginning of the larger pilot programme, see Note A.
 
-C. South West began some pilot work using additional triage time in February 2015. South West were consistent in their use of additional triage time from February 2015.
+C. South Western began some pilot work using additional triage time in February 2015. South Western were consistent in their use of additional triage time from February 2015.
 
-D. Revised call categories pilot programme site (3 sites). Revised call categories underwent two changes during the pilot period before the categories were finalised. However, these changes to the new categories are unlikely to have affected the categorisation of the highest severity calls (e.g. cardiac arrest). For completeness, we list the dates of changes to these new categories: South West - 2016-10-24; West Midlands - 2016-10-17; Yorkshire - 2016-10-24.
+D. Revised call categories pilot programme site (3 sites). Revised call categories underwent two changes during the pilot period before the categories were finalised. However, these changes to the new categories are unlikely to have affected the categorisation of the highest severity calls (e.g. cardiac arrest). For completeness, we list the dates of changes to these new categories: South Western - 2016-10-24; West Midlands - 2016-10-17; Yorkshire - 2016-10-24.
 
 ### Overall data required
 
