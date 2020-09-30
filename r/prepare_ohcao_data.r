@@ -87,12 +87,9 @@ prepareOHCAOData <- function(ohcao_data_raw) {
 
   # Create age_group fields -------------------------------------------------
 
-  ohcao_data_raw[, ':=' (age_group = cut(age,
-                                         ref_age_cut_points,
-                                         right = FALSE),
-                         age_group_broad = cut(age,
-                                               c(ref_age_cut_points[seq(from = 1, to = length(ref_age_cut_points) - 1 , by = 2)], Inf),
-                                               right = FALSE))]
+  ohcao_data_raw[, age_group := cut(age,
+                                    ref_age_cut_points,
+                                    right = FALSE)]
 
   ohcao_data_raw[, age_group := levels(age_group)[age_group]]
 
@@ -122,23 +119,38 @@ prepareOHCAOData <- function(ohcao_data_raw) {
 
 # Recode respontime/crplay as per OHCAO guidance --------------------------
 
-  ohcao_data_raw[wit == "EMS witnessed" , ':=' (responsetime = 0,
+  ohcao_data_raw[wit == "EMS witnessed", ':=' (responsetime = 0,
                                                 cprlay = "No bystander CPR")]
 
+# Create new roschosp (It is unfeasable that a pt would be discharged alive without ROSC at hospital)
 
-  # Create binary version of cprlay -----------------------------------------
+  ohcao_data_raw[, roschosp_original := roschosp]
+  ohcao_data_raw[discharged == TRUE, roschosp := TRUE]
 
-  ohcao_data_raw[!is.na(cprlay), cprlay_binary := cprlay %in% c("Bystander CPR",
-                                                                "Subset: compression only",
-                                                                "Subset: compression and ventilations")]
+
+# Create three-value (+NA) version of cpr ---------------------------------
+
+  ohcao_data_raw[wit %in% c("Bystander witnessed", "Yes") &
+                   cprlay %in% c("Bystander CPR",
+                                 "Subset: compression only",
+                                 "Subset: compression and ventilations"),
+                 witness_cpr := "Bystander witness CPR"]
+
+  ohcao_data_raw[(!(wit %in% "EMS witnessed") &
+                   cprlay == "No bystander CPR") |
+                   wit == "Unwitnessed",
+                 witness_cpr := "No witness CPR"]
+
+  ohcao_data_raw[wit == "EMS witnessed",
+                 witness_cpr := "EMS witness CPR"]
 
 
   # Create binary version of initrhythm -------------------------------------
 
-  ohcao_data_raw[!is.na(initrhythm), initrhythm_shockable_binary :=  (initrhythm %in% c("VF/VT",
-                                                                                        "AED shockable",
-                                                                                        "VF",
-                                                                                        "Pulseless VT"))]
+  ohcao_data_raw[!is.na(initrhythm), initrhythm_shockable_binary := (initrhythm %in% c("VF/VT",
+                                                                                       "AED shockable",
+                                                                                       "VF",
+                                                                                       "Pulseless VT"))]
 
 
 # Create binary version of padused ----------------------------------------
@@ -163,17 +175,15 @@ prepareOHCAOData <- function(ohcao_data_raw) {
 
   # Identify complete cases -------------------------------------------------
 
-  ohcao_data_raw[, complete_case := complete.cases(site, ARP_phase, bimonth,
-                                                   responsetime, age,
-                                                   wit_binary, cprlay_binary,
+  ohcao_data_raw[, complete_case_discharged := complete.cases(site, bimonth,
                                                    initrhythm_shockable_binary,
-                                                   discharged, roschosp)]
+                                                   age, sex, witness_cpr,
+                                                   discharged)]
 
-  ohcao_data_raw[, complete_case_roschosp := complete.cases(site, ARP_phase, bimonth,
-                                                   responsetime, age,
-                                                   wit_binary, cprlay_binary,
-                                                   initrhythm_shockable_binary,
-                                                   roschosp)]
+  ohcao_data_raw[, complete_case_roschosp := complete.cases(site, bimonth,
+                                                            initrhythm_shockable_binary,
+                                                            age, sex, witness_cpr,
+                                                            roschosp)]
 
   # Ensure OHCAO IDs are unique ---------------------------------------------
 
@@ -185,12 +195,12 @@ prepareOHCAOData <- function(ohcao_data_raw) {
   ohcao_data <- data.table::copy(ohcao_data_raw[, .(ohcaoid,
                                                     site, ARP_phase, bimonth,
                                                     responsetime, age,
-                                                    wit_binary, cprlay_binary,
+                                                    wit_binary, witness_cpr,
                                                     initrhythm_shockable_binary,
                                                     discharged, roschosp,
-                                                    complete_case,
+                                                    complete_case_discharged,
                                                     complete_case_roschosp,
-                                                    age_group, age_group_broad,
+                                                    age_group, roschosp_original,
                                                     ems_month, emstime,
                                                     sex, imd2015decile,
                                                     wit, cprlay, initrhythm,

@@ -3,14 +3,11 @@ library(openxlsx)
 library(readxl)
 library(lubridate)
 library(sf)
-library(sp)
-library(rgdal)
-library(maptools)
 
 
 # Global var --------------------------------------------------------------
 
-ref_age_cut_points <- c(seq(0, 90, by = 5), Inf)
+ref_age_cut_points <- c(0, 20, 50, 75, Inf)
 
 # Prepare field code tables -----------------------------------------------
 
@@ -201,24 +198,17 @@ download.file(ccg18_shp_data, temp, mode = "wb")
 files <- unzip(temp, exdir = "./data-raw/temp")
 
 # Read in CCG boundary data
-ccg_sp_data <- readOGR(dsn = "data-raw/temp",
+ccg_sp_data <- st_read(dsn = "data-raw/temp",
                        layer = "Clinical_Commissioning_Groups_April_2018_Generalised_Clipped_Boundaries_in_England")
 
 # Merge CCG to Amb service lookp into CCG boundary data
 ccg_sp_data <- merge(ccg_sp_data, ccg_to_amb_lookup, by.x = "ccg18cd", by.y = "ccg18_code", all.x = TRUE)
 
 # Collapse CCG boundaries to Ambulance service boundaries
-amb_sp_data <- unionSpatialPolygons(ccg_sp_data, IDs = ccg_sp_data@data$site)
-
-# Promote to SpatialPolygonsDataFrame
-amb_sp_data <- SpatialPolygonsDataFrame(amb_sp_data,
-                                             data.frame(site = names(amb_sp_data),
-                                                        stringsAsFactors = FALSE),
-                                             match.ID = "site")
-
+amb_sp_data <- aggregate(ccg_sp_data[, NULL], list(site = ccg_sp_data$site), head, n = 1L)
 
 # Reproject from BNG (British National Grid) to EPSG:3857 (Worldwide GPS system)
-ref_amb_sf_data_EPSG3857 <- st_as_sf(spTransform(amb_sp_data, CRS("+init=epsg:3857")))
+ref_amb_sf_data_EPSG3857 <- st_transform(amb_sp_data, 3857)
 
 # delete temp/geo files
 unlink(c(temp, files))

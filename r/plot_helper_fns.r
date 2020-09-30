@@ -16,8 +16,15 @@ plotSiteColours <- function(...) {
                                                     title.position = "top")))
 }
 
-plotARPPeriods <- function(...) {
-  return(geom_rect(data = ref_time_intervals,
+plotARPPeriods <- function(sites) {
+
+  time_intervals <- ref_time_intervals
+
+  if(!missing(sites)) {
+    time_intervals <- time_intervals[site %in% sites]
+  }
+
+  return(geom_rect(data = time_intervals[period == "ARP"],
                    aes(x = NULL, y = NULL, xmin = start, xmax = end, fill = factor(period, c("pre-ARP",
                                                                                              "ARP",
                                                                                              "post-ARP"))),
@@ -26,13 +33,18 @@ plotARPPeriods <- function(...) {
                    alpha = .4))
 }
 
-plotMissingPeriods <- function(periods, ...) {
+plotMissingPeriods <- function(periods, sites) {
+
+  if(!missing(sites)) {
+    periods <- periods[site %in% sites]
+  }
+
   return(geom_rect(data = periods, aes(x = NULL, y = NULL, xmin = min_date, xmax = max_date), fill = "black", ymin = -Inf, ymax = Inf, alpha = 1))
 }
 
 plotARPPeriodColours <- function(...) {
   return(scale_fill_manual(values = c("pre-ARP" = "#e9a3c9",
-                                      "ARP" = "#b15928",
+                                      "ARP" = "#666666",
                                       "post-ARP" = "#5ab4ac"),
                            guide = guide_legend(title = "ARP Phase",
                                                 title.position = "top")))
