@@ -6,4 +6,3 @@ data/*
 data-raw/*/*
 private.yaml
 /markdown/*
-!markdown/*.Rmd
